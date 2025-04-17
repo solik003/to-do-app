@@ -37,8 +37,8 @@ src/
 1. **Clone the repository:**
 
 ```bash
-git clone https://github.com/your-username/todo-app.git
-cd todo-app
+git clone https://github.com/solik003/to-do-app.git
+cd to-do-app
 
 2. **Install dependencies:**
 
