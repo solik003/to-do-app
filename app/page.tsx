@@ -1,32 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { addTodo, deleteTodo, getTodos } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getTodos, addTodo, deleteTodo } from '@/lib/api';
 import { TodoItem } from '@/components/TodoItem';
-import { Todo } from '@/types/item';
+import { useState } from 'react';
 
 export default function Home() {
-  const [todos, setTodos] = useState<Todo[]>([]);
+  const queryClient = useQueryClient();
   const [newTitle, setNewTitle] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const data = await getTodos();
-      setTodos(data);
-    };
-    fetchData();
-  }, []);
+  const { data: todos = [], isLoading } = useQuery({
+    queryKey: ['todos'],
+    queryFn: getTodos,
+  });
 
-  const handleAdd = async () => {
-    if (!newTitle.trim()) return;
-    const newTodo = await addTodo(newTitle);
-    setTodos((prev) => [newTodo, ...prev]);
-    setNewTitle('');
+  const addMutation = useMutation({
+    mutationFn: addTodo,
+    onSuccess: (newTodo) => {
+      queryClient.setQueryData(['todos'], (old: any) => [newTodo, ...(old || [])]);
+      setNewTitle('');
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteTodo,
+    onSuccess: (deletedId) => {
+      queryClient.setQueryData(['todos'], (old: any) => old?.filter((t: any) => t.id !== deletedId));
+    },
+  });
+
+  const handleAdd = () => {
+    if (newTitle.trim()) {
+      addMutation.mutate(newTitle);
+    }
   };
 
-  const handleDelete = async (id: number) => {
-    await deleteTodo(id);
-    setTodos((prev) => prev.filter((todo) => todo.id !== id));
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   return (
@@ -50,9 +60,13 @@ export default function Home() {
         </div>
 
         <div className="space-y-3">
-          {todos.map((todo) => (
-            <TodoItem key={todo.id} id={todo.id} title={todo.title} onDelete={handleDelete} />
-          ))}
+          {isLoading ? (
+            <p className="text-center text-gray-600">Loading...</p>
+          ) : (
+            todos.map((todo: any) => (
+              <TodoItem key={todo.id} id={todo.id} title={todo.title} onDelete={handleDelete} />
+            ))
+          )}
         </div>
       </div>
     </main>
