@@ -1,15 +1,34 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { deleteTodo } from '@/lib/api';
+import axios from 'axios';
 
 export const useDeleteTodo = () => {
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteTodo,
-    onSuccess: (deletedId) => {
-      queryClient.setQueryData(['todos'], (old: any) => old?.filter((t: any) => t.id !== deletedId));
-    },
-  });
+    return useMutation({
+        mutationFn: async (id: number) => {
+            await axios.delete(`/api/todos/${id}`);
+        },
 
-  return deleteMutation;
+        onMutate: async (id: number) => {
+            await queryClient.cancelQueries({ queryKey: ['todos'] });
+
+            const previousTodos = queryClient.getQueryData<any[]>(['todos']);
+
+            queryClient.setQueryData(['todos'], (old: any[]) =>
+                old?.filter(todo => todo.id !== id)
+            );
+
+            return { previousTodos };
+        },
+
+        onError: (_err, _id, context: any) => {
+            if (context?.previousTodos) {
+                queryClient.setQueryData(['todos'], context.previousTodos);
+            }
+        },
+
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: ['todos'] });
+        },
+    });
 };

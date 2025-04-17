@@ -1,11 +1,13 @@
+import { API_URL } from '@/constants';
 import { useQuery } from '@tanstack/react-query';
-import { getTodos } from '@/lib/api';
 
-export const useTodos = () => {
-    const { data: todos = [], isLoading } = useQuery({
+export const useTodos = () =>
+    useQuery({
         queryKey: ['todos'],
-        queryFn: getTodos,
+        queryFn: async () => {
+            const res = await fetch(`${API_URL}?_limit=10`);
+            const data = await res.json();
+            return data.map((todo: any) => ({ ...todo, completed: false }));
+        },
     });
 
-    return { todos, isLoading };
-};
