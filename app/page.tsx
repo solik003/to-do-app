@@ -1,42 +1,26 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTodos, addTodo, deleteTodo } from '@/lib/api';
-import { TodoItem } from '@/components/TodoItem';
 import { useState } from 'react';
+import { useTodos } from '@/hooks/useTodos';
+import { useAddTodo } from '@/hooks/useAddTodo';
+import { useDeleteTodo } from '@/hooks/useDeleteTodo';
+import { TodoItem } from '@/components/TodoItem';
 
 export default function Home() {
-  const queryClient = useQueryClient();
   const [newTitle, setNewTitle] = useState('');
-
-  const { data: todos = [], isLoading } = useQuery({
-    queryKey: ['todos'],
-    queryFn: getTodos,
-  });
-
-  const addMutation = useMutation({
-    mutationFn: addTodo,
-    onSuccess: (newTodo) => {
-      queryClient.setQueryData(['todos'], (old: any) => [newTodo, ...(old || [])]);
-      setNewTitle('');
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteTodo,
-    onSuccess: (deletedId) => {
-      queryClient.setQueryData(['todos'], (old: any) => old?.filter((t: any) => t.id !== deletedId));
-    },
-  });
+  const { todos, isLoading } = useTodos();
+  const { mutate: addTodo } = useAddTodo();
+  const { mutate: deleteTodo } = useDeleteTodo();
 
   const handleAdd = () => {
     if (newTitle.trim()) {
-      addMutation.mutate(newTitle);
+      addTodo(newTitle);
+      setNewTitle('');
     }
   };
 
   const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
+    deleteTodo(id);
   };
 
   return (
